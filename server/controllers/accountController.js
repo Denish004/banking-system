@@ -98,10 +98,17 @@ exports.deposit = async (req, res) => {
       const userId = req.user.id;
       const accounts = await Account.findByUserId(userId);
       const accountBelongsToUser = accounts.some(
-        (account) => account.id.toString() === accountId
+        (account) => account.id.toString() === accountId.toString()
       );
 
       if (!accountBelongsToUser) {
+        console.log(
+          `Access denied: Account ${accountId} does not belong to user ${userId}`
+        );
+        console.log(
+          "Available accounts:",
+          accounts.map((a) => a.id)
+        );
         return res.status(403).json({ error: "Access denied" });
       }
     }
@@ -135,10 +142,17 @@ exports.withdraw = async (req, res) => {
       const userId = req.user.id;
       const accounts = await Account.findByUserId(userId);
       const accountBelongsToUser = accounts.some(
-        (account) => account.id.toString() === accountId
+        (account) => account.id.toString() === accountId.toString()
       );
 
       if (!accountBelongsToUser) {
+        console.log(
+          `Access denied: Account ${accountId} does not belong to user ${userId}`
+        );
+        console.log(
+          "Available accounts:",
+          accounts.map((a) => a.id)
+        );
         return res.status(403).json({ error: "Access denied" });
       }
     }
