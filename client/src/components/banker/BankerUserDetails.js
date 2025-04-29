@@ -1,137 +1,169 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Button, Alert, Modal, Form } from 'react-bootstrap';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Button,
+  Alert,
+  Modal,
+  Form,
+} from "react-bootstrap";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 const BankerUserDetails = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  
+
   const [user, setUser] = useState(null);
   const [customerData, setCustomerData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   // Transaction modal state
   const [showModal, setShowModal] = useState(false);
-  const [transactionType, setTransactionType] = useState('');
-  const [amount, setAmount] = useState('');
+  const [transactionType, setTransactionType] = useState("");
+  const [amount, setAmount] = useState("");
   const [currentAccount, setCurrentAccount] = useState(null);
-  const [transactionError, setTransactionError] = useState('');
-  const [transactionSuccess, setTransactionSuccess] = useState('');
+  const [transactionError, setTransactionError] = useState("");
+  const [transactionSuccess, setTransactionSuccess] = useState("");
 
   useEffect(() => {
     // Load banker data and customer details
     const loadData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          navigate('/banker/login');
+          navigate("/banker/login");
           return;
         }
 
         const [userRes, customerRes] = await Promise.all([
           axios.get(`${API_URL}/api/users/profile`, {
-            headers: { Authorization: token }
+            headers: { Authorization: token },
           }),
           axios.get(`${API_URL}/api/users/${userId}`, {
-            headers: { Authorization: token }
-          })
+            headers: { Authorization: token },
+          }),
         ]);
-        
+
         // Verify that the user is a banker
-        if (userRes.data.user.role !== 'banker') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-          navigate('/banker/login');
+        if (userRes.data.user.role !== "banker") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("userRole");
+          navigate("/banker/login");
           return;
         }
-        
+
         setUser(userRes.data.user);
         setCustomerData(customerRes.data);
       } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Error loading data. Please try again.');
-        
+        console.error("Error loading data:", err);
+        setError("Error loading data. Please try again.");
+
         // If unauthorized, redirect to login
         if (err.response && err.response.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-          navigate('/banker/login');
+          localStorage.removeItem("token");
+          localStorage.removeItem("userRole");
+          navigate("/banker/login");
         }
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [userId, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    navigate('/banker/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    navigate("/banker/login");
   };
 
   const openTransactionModal = (type, account) => {
     setTransactionType(type);
     setCurrentAccount(account);
-    setAmount('');
-    setTransactionError('');
-    setTransactionSuccess('');
+    setAmount("");
+    setTransactionError("");
+    setTransactionSuccess("");
     setShowModal(true);
   };
-  
+
   const closeModal = () => {
     setShowModal(false);
   };
 
   const handleTransaction = async (e) => {
     e.preventDefault();
-    setTransactionError('');
-    setTransactionSuccess('');
-    
+    setTransactionError("");
+    setTransactionSuccess("");
+
     // Validate amount
     const amountValue = parseFloat(amount);
     if (isNaN(amountValue) || amountValue <= 0) {
-      setTransactionError('Please enter a valid amount greater than zero.');
+      setTransactionError("Please enter a valid amount greater than zero.");
       return;
     }
-    
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        navigate('/banker/login');
+        navigate("/banker/login");
         return;
       }
 
-      const endpoint = transactionType === 'deposit'
-        ? `${API_URL}/api/accounts/deposit`
-        : `${API_URL}/api/accounts/withdraw`;
-      
+      const endpoint =
+        transactionType === "deposit"
+          ? `${API_URL}/api/accounts/deposit`
+          : `${API_URL}/api/accounts/withdraw`;
+
       const response = await axios.post(
-        endpoint, 
+        endpoint,
         {
           accountId: currentAccount.id,
-          amount: amountValue
+          amount: amountValue,
         },
         {
-          headers: { Authorization: token }
+          headers: { Authorization: token },
         }
       );
-      
+
       if (response.data.success) {
         setTransactionSuccess(response.data.message);
-        
-        // Refresh customer data to update account balance
-        const customerRes = await axios.get(`${API_URL}/api/users/${userId}`, {
-          headers: { Authorization: token }
+
+        // Update the account balance locally instead of fetching again
+        setCustomerData((prevData) => {
+          // Find and update the specific account
+          const updatedAccounts = prevData.accounts.map((account) => {
+            if (account.id === currentAccount.id) {
+              return { ...account, balance: response.data.balance };
+            }
+            return account;
+          });
+
+          // Create a new transaction record to add to the UI
+          const newTransaction = {
+            id: Date.now(), // Temporary ID until refresh
+            account_id: currentAccount.id,
+            type: transactionType,
+            amount: amountValue,
+            balance_before: parseFloat(currentAccount.balance),
+            balance_after: response.data.balance,
+            created_at: new Date().toISOString(),
+          };
+
+          return {
+            ...prevData,
+            accounts: updatedAccounts,
+            transactions: [newTransaction, ...prevData.transactions],
+          };
         });
-        
-        setCustomerData(customerRes.data);
-        
+
         // Close modal after a short delay
         setTimeout(() => {
           setShowModal(false);
@@ -140,13 +172,19 @@ const BankerUserDetails = () => {
         setTransactionError(response.data.message);
       }
     } catch (err) {
-      console.error('Transaction error:', err);
-      setTransactionError(err.response?.data?.error || 'Transaction failed. Please try again.');
+      console.error("Transaction error:", err);
+      setTransactionError(
+        err.response?.data?.error || "Transaction failed. Please try again."
+      );
     }
   };
 
   if (loading) {
-    return <div className="text-center mt-5"><h3>Loading...</h3></div>;
+    return (
+      <div className="text-center mt-5">
+        <h3>Loading...</h3>
+      </div>
+    );
   }
 
   return (
@@ -158,16 +196,18 @@ const BankerUserDetails = () => {
               <h2>Banking System - Banker Portal</h2>
               <div>
                 <span className="me-3">Welcome, {user?.full_name}</span>
-                <Button variant="light" size="sm" onClick={handleLogout}>Logout</Button>
+                <Button variant="light" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
               </div>
             </div>
           </Container>
         </Col>
       </Row>
-      
+
       <Container className="mt-4">
         {error && <Alert variant="danger">{error}</Alert>}
-        
+
         <div className="mb-3">
           <Button variant="secondary" as={Link} to="/banker/dashboard">
             &larr; Back to Dashboard
@@ -183,12 +223,20 @@ const BankerUserDetails = () => {
               <Card.Body>
                 <Row>
                   <Col md={6}>
-                    <p><strong>Name:</strong> {customerData.user.full_name}</p>
-                    <p><strong>Username:</strong> {customerData.user.username}</p>
+                    <p>
+                      <strong>Name:</strong> {customerData.user.full_name}
+                    </p>
+                    <p>
+                      <strong>Username:</strong> {customerData.user.username}
+                    </p>
                   </Col>
                   <Col md={6}>
-                    <p><strong>Email:</strong> {customerData.user.email}</p>
-                    <p><strong>Role:</strong> {customerData.user.role}</p>
+                    <p>
+                      <strong>Email:</strong> {customerData.user.email}
+                    </p>
+                    <p>
+                      <strong>Role:</strong> {customerData.user.role}
+                    </p>
                   </Col>
                 </Row>
               </Card.Body>
@@ -196,7 +244,7 @@ const BankerUserDetails = () => {
 
             <h3>Customer Accounts</h3>
             <Row className="mb-4">
-              {customerData.accounts.map(account => (
+              {customerData.accounts.map((account) => (
                 <Col md={6} key={account.id} className="mb-3">
                   <Card>
                     <Card.Header>
@@ -207,16 +255,20 @@ const BankerUserDetails = () => {
                         Balance: ${parseFloat(account.balance).toFixed(2)}
                       </Card.Title>
                       <div className="mt-3">
-                        <Button 
-                          variant="success" 
-                          className="me-2" 
-                          onClick={() => openTransactionModal('deposit', account)}
+                        <Button
+                          variant="success"
+                          className="me-2"
+                          onClick={() =>
+                            openTransactionModal("deposit", account)
+                          }
                         >
                           Deposit
                         </Button>
-                        <Button 
-                          variant="warning" 
-                          onClick={() => openTransactionModal('withdraw', account)}
+                        <Button
+                          variant="warning"
+                          onClick={() =>
+                            openTransactionModal("withdraw", account)
+                          }
                         >
                           Withdraw
                         </Button>
@@ -227,7 +279,9 @@ const BankerUserDetails = () => {
               ))}
               {customerData.accounts.length === 0 && (
                 <Col>
-                  <Alert variant="info">No accounts found for this customer.</Alert>
+                  <Alert variant="info">
+                    No accounts found for this customer.
+                  </Alert>
                 </Col>
               )}
             </Row>
@@ -246,23 +300,38 @@ const BankerUserDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {customerData.transactions.map(transaction => (
+                  {customerData.transactions.map((transaction) => (
                     <tr key={transaction.id}>
-                      <td>{new Date(transaction.created_at).toLocaleString()}</td>
+                      <td>
+                        {new Date(transaction.created_at).toLocaleString()}
+                      </td>
                       <td>{transaction.account_id}</td>
                       <td>
-                        <span className={transaction.type === 'deposit' ? 'text-success' : 'text-danger'}>
-                          {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                        <span
+                          className={
+                            transaction.type === "deposit"
+                              ? "text-success"
+                              : "text-danger"
+                          }
+                        >
+                          {transaction.type.charAt(0).toUpperCase() +
+                            transaction.type.slice(1)}
                         </span>
                       </td>
                       <td>${parseFloat(transaction.amount).toFixed(2)}</td>
-                      <td>${parseFloat(transaction.balance_before).toFixed(2)}</td>
-                      <td>${parseFloat(transaction.balance_after).toFixed(2)}</td>
+                      <td>
+                        ${parseFloat(transaction.balance_before).toFixed(2)}
+                      </td>
+                      <td>
+                        ${parseFloat(transaction.balance_after).toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                   {customerData.transactions.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="text-center">No transactions found</td>
+                      <td colSpan="6" className="text-center">
+                        No transactions found
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -271,23 +340,30 @@ const BankerUserDetails = () => {
           </>
         )}
       </Container>
-      
+
       {/* Transaction Modal */}
       <Modal show={showModal} onHide={closeModal}>
         <Modal.Header closeButton>
           <Modal.Title>
-            {transactionType === 'deposit' ? 'Deposit Funds' : 'Withdraw Funds'}
+            {transactionType === "deposit" ? "Deposit Funds" : "Withdraw Funds"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {currentAccount && (
             <>
               <p>Account: {currentAccount.account_number}</p>
-              <p>Available Balance: ${parseFloat(currentAccount.balance).toFixed(2)}</p>
-              
-              {transactionError && <Alert variant="danger">{transactionError}</Alert>}
-              {transactionSuccess && <Alert variant="success">{transactionSuccess}</Alert>}
-              
+              <p>
+                Available Balance: $
+                {parseFloat(currentAccount.balance).toFixed(2)}
+              </p>
+
+              {transactionError && (
+                <Alert variant="danger">{transactionError}</Alert>
+              )}
+              {transactionSuccess && (
+                <Alert variant="success">{transactionSuccess}</Alert>
+              )}
+
               <Form onSubmit={handleTransaction}>
                 <Form.Group className="mb-3">
                   <Form.Label>Amount</Form.Label>
@@ -305,11 +381,13 @@ const BankerUserDetails = () => {
                   <Button variant="secondary" onClick={closeModal}>
                     Cancel
                   </Button>
-                  <Button 
-                    variant={transactionType === 'deposit' ? 'success' : 'warning'} 
+                  <Button
+                    variant={
+                      transactionType === "deposit" ? "success" : "warning"
+                    }
                     type="submit"
                   >
-                    {transactionType === 'deposit' ? 'Deposit' : 'Withdraw'}
+                    {transactionType === "deposit" ? "Deposit" : "Withdraw"}
                   </Button>
                 </div>
               </Form>

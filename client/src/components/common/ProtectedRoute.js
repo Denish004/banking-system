@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -11,50 +11,58 @@ const ProtectedRoute = ({ children, userRole }) => {
 
   useEffect(() => {
     const verifyAuth = async () => {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (!token) {
         setLoading(false);
         return;
       }
-      
+
       try {
         // Use explicit token in header instead of defaults
         const response = await axios.get(`${API_URL}/api/users/profile`, {
           headers: {
-            Authorization: token
-          }
+            Authorization: token,
+          },
         });
-        
+
         if (response.data.success) {
           setUser(response.data.user);
           setIsAuthenticated(true);
         }
       } catch (error) {
-        console.error('Authentication error:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
+        console.error("Authentication error:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("userRole");
       } finally {
         setLoading(false);
       }
     };
-    
+
     verifyAuth();
   }, []);
 
   if (loading) {
-    return <div className="text-center mt-5"><h3>Loading...</h3></div>;
+    return (
+      <div className="text-center mt-5">
+        <h3>Loading...</h3>
+      </div>
+    );
   }
-  
+
   if (!isAuthenticated) {
-    return <Navigate to={userRole === 'banker' ? '/banker/login' : '/login'} />;
+    return <Navigate to={userRole === "banker" ? "/banker/login" : "/login"} />;
   }
-  
+
   // Check if user has correct role
   if (user && user.role !== userRole) {
-    return <Navigate to={user.role === 'banker' ? '/banker/dashboard' : '/dashboard'} />;
+    return (
+      <Navigate
+        to={user.role === "banker" ? "/banker/dashboard" : "/dashboard"}
+      />
+    );
   }
-  
+
   return children;
 };
 

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Table, Alert, Button } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { Container, Row, Col, Table, Alert, Button } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -11,67 +11,71 @@ const BankerDashboard = () => {
   const [customers, setCustomers] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     // Load banker data, customer list and all accounts
     const loadData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          navigate('/banker/login');
+          navigate("/banker/login");
           return;
         }
 
         const [userRes, customersRes, accountsRes] = await Promise.all([
           axios.get(`${API_URL}/api/users/profile`, {
-            headers: { Authorization: token }
+            headers: { Authorization: token },
           }),
           axios.get(`${API_URL}/api/users/all`, {
-            headers: { Authorization: token }
+            headers: { Authorization: token },
           }),
           axios.get(`${API_URL}/api/accounts/all`, {
-            headers: { Authorization: token }
-          })
+            headers: { Authorization: token },
+          }),
         ]);
-        
+
         // Verify that the user is a banker
-        if (userRes.data.user.role !== 'banker') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-          navigate('/banker/login');
+        if (userRes.data.user.role !== "banker") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("userRole");
+          navigate("/banker/login");
           return;
         }
-        
+
         setUser(userRes.data.user);
         setCustomers(customersRes.data.users);
         setAccounts(accountsRes.data.accounts);
       } catch (err) {
-        console.error('Error loading data:', err);
-        setError('Error loading data. Please try again.');
-        
+        console.error("Error loading data:", err);
+        setError("Error loading data. Please try again.");
+
         // If unauthorized, redirect to login
         if (err.response && err.response.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-          navigate('/banker/login');
+          localStorage.removeItem("token");
+          localStorage.removeItem("userRole");
+          navigate("/banker/login");
         }
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    navigate('/banker/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    navigate("/banker/login");
   };
 
   if (loading) {
-    return <div className="text-center mt-5"><h3>Loading...</h3></div>;
+    return (
+      <div className="text-center mt-5">
+        <h3>Loading...</h3>
+      </div>
+    );
   }
 
   return (
@@ -83,13 +87,15 @@ const BankerDashboard = () => {
               <h2>Banking System - Banker Portal</h2>
               <div>
                 <span className="me-3">Welcome, {user?.full_name}</span>
-                <Button variant="light" size="sm" onClick={handleLogout}>Logout</Button>
+                <Button variant="light" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
               </div>
             </div>
           </Container>
         </Col>
       </Row>
-      
+
       <Container className="mt-4">
         {error && <Alert variant="danger">{error}</Alert>}
 
@@ -105,16 +111,16 @@ const BankerDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {customers.map(customer => (
+              {customers.map((customer) => (
                 <tr key={customer.id}>
                   <td>{customer.full_name}</td>
                   <td>{customer.username}</td>
                   <td>{customer.email}</td>
                   <td>
-                    <Button 
-                      variant="info" 
-                      size="sm" 
-                      as={Link} 
+                    <Button
+                      variant="info"
+                      size="sm"
+                      as={Link}
                       to={`/banker/users/${customer.id}`}
                     >
                       View Details
@@ -124,7 +130,9 @@ const BankerDashboard = () => {
               ))}
               {customers.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="text-center">No customers found</td>
+                  <td colSpan="4" className="text-center">
+                    No customers found
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -144,17 +152,17 @@ const BankerDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {accounts.map(account => (
+              {accounts.map((account) => (
                 <tr key={account.id}>
                   <td>{account.account_number}</td>
                   <td>{account.full_name}</td>
                   <td>${parseFloat(account.balance).toFixed(2)}</td>
                   <td>{new Date(account.created_at).toLocaleDateString()}</td>
                   <td>
-                    <Button 
-                      variant="info" 
-                      size="sm" 
-                      as={Link} 
+                    <Button
+                      variant="info"
+                      size="sm"
+                      as={Link}
                       to={`/banker/users/${account.user_id}`}
                     >
                       View Customer
@@ -164,7 +172,9 @@ const BankerDashboard = () => {
               ))}
               {accounts.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="text-center">No accounts found</td>
+                  <td colSpan="5" className="text-center">
+                    No accounts found
+                  </td>
                 </tr>
               )}
             </tbody>

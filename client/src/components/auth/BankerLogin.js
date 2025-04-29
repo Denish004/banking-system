@@ -1,66 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Alert,
+} from "react-bootstrap";
+import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 const BankerLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { username, password } = formData;
 
   useEffect(() => {
     // Check if already logged in
-    const token = localStorage.getItem('token');
-    const userRole = localStorage.getItem('userRole');
-    
-    if (token && userRole === 'banker') {
-      navigate('/banker/dashboard');
-    } else if (token && userRole === 'customer') {
-      navigate('/dashboard');
+    const token = localStorage.getItem("token");
+    const userRole = localStorage.getItem("userRole");
+
+    if (token && userRole === "banker") {
+      navigate("/banker/dashboard");
+    } else if (token && userRole === "customer") {
+      navigate("/dashboard");
     }
   }, [navigate]);
 
-  const onChange = e => {
+  const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const onSubmit = async e => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
-    
+
     try {
       const response = await axios.post(`${API_URL}/api/users/login`, {
         username,
-        password
+        password,
       });
 
       if (response.data.success && response.data.user) {
         const { access_token, role } = response.data.user;
 
-        if (role !== 'banker') {
-          setError('Access denied. This login is for bankers only.');
+        if (role !== "banker") {
+          setError("Access denied. This login is for bankers only.");
           setLoading(false);
           return;
         }
 
         // Save the token and role
-        localStorage.setItem('token', access_token);
-        localStorage.setItem('userRole', role);
+        localStorage.setItem("token", access_token);
+        localStorage.setItem("userRole", role);
 
         // Redirect to banker dashboard
-        navigate('/banker/dashboard');
+        navigate("/banker/dashboard");
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+      setError(
+        err.response?.data?.error ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -107,7 +118,7 @@ const BankerLogin = () => {
                   className="w-100 mt-3"
                   disabled={loading}
                 >
-                  {loading ? 'Logging in...' : 'Login as Banker'}
+                  {loading ? "Logging in..." : "Login as Banker"}
                 </Button>
               </Form>
               <div className="text-center mt-4">
