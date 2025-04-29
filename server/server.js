@@ -9,10 +9,23 @@ const accountRoutes = require("./routes/accountRoutes");
 // Initialize express
 const app = express();
 
-// CORS configuration - TEMPORARY DEBUG MODE
+// CORS configuration
 app.use(
   cors({
-    origin: "*", // Allow all origins
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "https://banking-system-one-omega.vercel.app",
+        "http://localhost:3000",
+      ];
+      // For debugging, log the origin that's attempting to connect
+      console.log("Request origin:", origin);
+
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );

@@ -1,22 +1,44 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-// Log connection parameters (remove passwords in production)
-console.log("Connecting to MySQL with:", {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  database: process.env.DB_NAME,
-});
+// Extract host and port from connection string
+let host, port;
 
-// Create a connection pool
+try {
+  const connectionString = process.env.DB_HOST || process.env.MYSQLHOST;
+  const hostMatch = connectionString.match(/@([^:]+):(\d+)/);
+
+  if (hostMatch) {
+    host = hostMatch[1];
+    port = parseInt(hostMatch[2]);
+    console.log(`Parsed connection string to: ${host}:${port}`);
+  } else {
+    host = process.env.DB_HOST || "localhost";
+    port = process.env.DB_PORT || 3306;
+  }
+} catch (err) {
+  console.error("Error parsing connection string:", err);
+  host = process.env.DB_HOST || "localhost";
+  port = process.env.DB_PORT || 3306;
+}
+
+// Create a connection pool with SSL and authentication options
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "Bank",
+  host: host,
+  port: port,
+  user: process.env.DB_USER || process.env.MYSQLUSER || "root",
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || "",
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || "railway",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  ssl: { rejectUnauthorized: false },
+  authPlugins: {
+    mysql_native_password: () => () =>
+      Buffer.from(
+        (process.env.DB_PASSWORD || process.env.MYSQLPASSWORD) + "\0"
+      ),
+  },
 });
 
 // Test database connection
@@ -24,13 +46,6 @@ async function testConnection() {
   try {
     const connection = await pool.getConnection();
     console.log("Database connected successfully");
-
-    // Test query to verify access to Users table
-    const [rows] = await connection.query(
-      "SELECT COUNT(*) as count FROM Users"
-    );
-    console.log(`Found ${rows[0].count} users in database`);
-
     connection.release();
     return true;
   } catch (error) {
