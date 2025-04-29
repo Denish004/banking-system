@@ -3,6 +3,8 @@ import { Container, Row, Col, Card, Table, Button, Alert, Modal, Form } from 're
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const BankerUserDetails = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -31,10 +33,10 @@ const BankerUserDetails = () => {
         }
 
         const [userRes, customerRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/profile', {
+          axios.get(`${API_URL}/api/users/profile`, {
             headers: { Authorization: token }
           }),
-          axios.get(`http://localhost:5000/api/users/${userId}`, {
+          axios.get(`${API_URL}/api/users/${userId}`, {
             headers: { Authorization: token }
           })
         ]);
@@ -106,8 +108,8 @@ const BankerUserDetails = () => {
       }
 
       const endpoint = transactionType === 'deposit'
-        ? 'http://localhost:5000/api/accounts/deposit'
-        : 'http://localhost:5000/api/accounts/withdraw';
+        ? `${API_URL}/api/accounts/deposit`
+        : `${API_URL}/api/accounts/withdraw`;
       
       const response = await axios.post(
         endpoint, 
@@ -124,7 +126,7 @@ const BankerUserDetails = () => {
         setTransactionSuccess(response.data.message);
         
         // Refresh customer data to update account balance
-        const customerRes = await axios.get(`http://localhost:5000/api/users/${userId}`, {
+        const customerRes = await axios.get(`${API_URL}/api/users/${userId}`, {
           headers: { Authorization: token }
         });
         

@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const BankerLogin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -36,7 +38,7 @@ const BankerLogin = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', {
+      const response = await axios.post(`${API_URL}/api/users/login`, {
         username,
         password
       });

@@ -3,6 +3,8 @@ import { Container, Row, Col, Table, Alert, Button } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const BankerDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -22,13 +24,13 @@ const BankerDashboard = () => {
         }
 
         const [userRes, customersRes, accountsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/profile', {
+          axios.get(`${API_URL}/api/users/profile`, {
             headers: { Authorization: token }
           }),
-          axios.get('http://localhost:5000/api/users/all', {
+          axios.get(`${API_URL}/api/users/all`, {
             headers: { Authorization: token }
           }),
-          axios.get('http://localhost:5000/api/accounts/all', {
+          axios.get(`${API_URL}/api/accounts/all`, {
             headers: { Authorization: token }
           })
         ]);

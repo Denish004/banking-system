@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 const ProtectedRoute = ({ children, userRole }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -18,7 +20,7 @@ const ProtectedRoute = ({ children, userRole }) => {
       
       try {
         // Use explicit token in header instead of defaults
-        const response = await axios.get('http://localhost:5000/api/users/profile', {
+        const response = await axios.get(`${API_URL}/api/users/profile`, {
           headers: {
             Authorization: token
           }
